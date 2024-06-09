@@ -140,21 +140,19 @@ jobs:
     steps:
       - name: Notify to Telegram
         run: |
-          if [[ "${{ needs.laravel_build.result }}" == "success" && "${{ needs.laravel_test.result }}" == "success" ]]; then
-            STATUS="CI/CD Pipeline <b>Success ✅</b>"
-          else
-            STATUS="CI/CD Pipeline <b>Failure ❌</b>"
-          fi
-          curl --request POST ${{ secrets.TELEGRAM_BOT }} \
-            -d parse_mode="HTML" \
-            -d chat_id="${{ secrets.TELEGRAM_CHANNEL }}" \
-            -d text="
-            %0A📝 Status: $STATUS
-            %0A📝 Commit: $GITHUB_SHA
-            %0A📝 Branch: $GITHUB_REF_NAME
-            %0A💬 Message: <b>${{ github.event.head_commit.message }}</b>
-            %0ACek disini: $CURRENT_REPO
-            "
+    if [[ "${{ needs.laravel_build.result }}" == "success" && "${{ needs.laravel_test.result }}" == "success" ]]; then
+      STATUS="CI/CD Pipeline <b>Success ✅</b>"
+    else
+      STATUS="CI/CD Pipeline <b>Failure ❌</b>"
+    fi
+    curl --request POST \
+      --url "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT }}/sendMessage" \
+      --header "Content-Type: application/json" \
+      --data '{
+        "chat_id": "${{ secrets.TELEGRAM_CHANNEL }}",
+        "parse_mode": "HTML",
+        "text": "📝 Status: '"$STATUS"'\n📝 Commit: '"${{ github.sha }}"'\n📝 Branch: '"${{ github.ref_name }}"'\n💬 Message: <b>'"${{ github.event.head_commit.message }}"'</b>\nCek disini: '"$CURRENT_REPO"'"
+      }'
 
   deploy:
     name: Deploy
