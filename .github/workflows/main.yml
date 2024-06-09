@@ -31,6 +31,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -66,6 +67,9 @@ jobs:
       - name: Build Node.JS
         run: npm run build
 
+      - name: Find Bugs
+        run: ./vendor/bin/phpstan analyse app
+
       - name: Create artifact
         run: zip -r artifact.zip .
 
@@ -99,6 +103,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
+
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v2
@@ -143,15 +148,16 @@ jobs:
           else
             STATUS="CI/CD Pipeline <b>Failure ❌</b>"
           fi
-          curl --request POST \
-            --url "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT }}/sendMessage" \
-            --header "Content-Type: application/json" \
-            --data '{
-              "chat_id": "${{ secrets.TELEGRAM_CHANNEL }}",
-              "parse_mode": "HTML",
-              "text": "📝 Status: '"$STATUS"'\n📝 Commit: '"${{ github.sha }}"'\n📝 Branch: '"${{ github.ref_name }}"'\n💬 Message: <b>'"${{ github.event.head_commit.message }}"'</b>\nCek disini: '"$CURRENT_REPO"'"
-            }'
-
+          curl --request POST ${{ secrets.TELEGRAM_BOT }} \
+            -d parse_mode="HTML" \
+            -d chat_id="${{ secrets.TELEGRAM_CHANNEL }}" \
+            -d text="
+            %0A📝 Status: $STATUS
+            %0A📝 Commit: $GITHUB_SHA
+            %0A📝 Branch: $GITHUB_REF_NAME
+            %0A💬 Message: <b>${{ github.event.head_commit.message }}</b>
+            %0ACek disini: $CURRENT_REPO
+            "
 
   deploy:
     name: Deploy
